@@ -75,7 +75,7 @@ get_index(){
 args="$(sed -r 's/(-+[A-za-z]+ )([^-]*)( |$)/\1"\2"\3/g' <<< $@)"
 declare -a arg_lists="($args)"
 set -- "${arg_lists[@]}"
-GNUPLOT_OPT=`getopt -o hf:o:v: -l help,filename:,output:,variables: \
+GNUPLOT_OPT=`getopt -o hcf:o:v: -l help,check,filename:,output:,variables: \
 	     -n "$0" -- "$@"`
 eval set  -- "$GNUPLOT_OPT"
 while true
@@ -83,18 +83,17 @@ do
 	case "$1" in
 		# Filename
 		-h|--help) gnuplot_help ; shift ; exit 1 ;;
+		-c|--check) flagc1=1; shift ;;
 		-f|--filename) 
 		# read -a temp_word <<< $2
 		# [ ${#temp_word[@]} == 1 ]&&filename="$2"||(echo 'Please type just one variable in this option.' ; exit 1)
-		# read -a file_list <<< $2
-		declare -a file_list=($2)
+		read -a file_list <<< $2
 		# read -a var_file <<< $(get_var $filename)
 		flagf=1
 		shift 2 ;;
 		# Output filename
 		-o|--output)
-		# read -a temp_word <<< $2
-		declare -a temp_word=($2)
+		read -a temp_word <<< $2
 		[ ${#temp_word[@]} == 1 ]&&output="${2%.*}.gnu"||(echo 'Please type just one variable in this option.' ; exit 1) 
 		flago=1
 		shift 2 ;;
@@ -112,6 +111,18 @@ done
 
 # Judge if we should generate a new file
 [ $flagf ] && [ $flagv ] && [ $flago ] && flagn=1
+# Check the variable
+[ $flagf ] && [ $flagc1 ] && flagc=1
+
+#------- Check the variables -------#
+if [ $flagc ]; then
+	for ifile in "${file_list[@]}"
+	do
+		printf "Variables in $ifile are "
+		printf "$(get_var $ifile)\n"
+	done
+	exit 0
+fi
 
 #------- Get new gnuplot file -------#
 if [ $flagn ]; then
