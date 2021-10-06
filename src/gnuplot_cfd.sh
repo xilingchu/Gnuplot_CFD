@@ -75,7 +75,7 @@ get_index(){
 args="$(sed -r 's/(-+[A-za-z]+ )([^-]*)( |$)/\1"\2"\3/g' <<< $@)"
 declare -a arg_lists="($args)"
 set -- "${arg_lists[@]}"
-GNUPLOT_OPT=`getopt -o hcf:o:v: -l help,check,filename:,output:,variables: \
+GNUPLOT_OPT=`getopt -o hcef:o:v: -l help,check,edit,filename:,output:,variables: \
 	     -n "$0" -- "$@"`
 eval set  -- "$GNUPLOT_OPT"
 while true
@@ -84,6 +84,7 @@ do
 		# Filename
 		-h|--help) gnuplot_help ; shift ; exit 1 ;;
 		-c|--check) flagc1=1; shift ;;
+		-e|--edit) flage1=1; shift ;;
 		-f|--filename) 
 		# read -a temp_word <<< $2
 		# [ ${#temp_word[@]} == 1 ]&&filename="$2"||(echo 'Please type just one variable in this option.' ; exit 1)
@@ -113,13 +114,15 @@ done
 [ $flagf ] && [ $flagv ] && [ $flago ] && flagn=1
 # Check the variable
 [ $flagf ] && [ $flagc1 ] && flagc=1
+# Edit mode
+[ $flago ] && [ $flage1 ] && flage=1
 
 #------- Check the variables -------#
 if [ $flagc ]; then
 	for ifile in "${file_list[@]}"
 	do
-		printf "Variables in $ifile are "
-		printf "$(get_var $ifile)\n"
+		printf "Variables in $ifile are"
+		printf "$(get_var $ifile|sed -r 's/[[:blank:]]+/ /g')\n"
 	done
 	exit 0
 fi
@@ -167,7 +170,41 @@ if [ $flagn ]; then
 	linenum=$(wc -l $output|awk '{print $1}')
 	eval sed -e "'${linenum}s/, \\\/ /'" -i $output
 fi
-	
+
+#------- Edit Mode -------#
+if [ $flage ]; then
+	cont=1
+	echo Enter edit mode!
+	while [ $cont == 1 ]
+	do
+		(gnuplot $output > /dev/null && xelatex ${output%.*}.tex > /dev/null && zathura ${output%.*}.pdf &) || (echo The file cannot generate && exit 1)
+		cat -n $output
+		echo "Three types of mode: edit(e), insert(i), quit(q), delete(d)"
+		read -p '>> ' edit
+		case $edit in
+			e|edit)
+				read -p 'Please choose the line number:' linen 
+				echo 'The text you want to add:' 
+				read ctext
+				eval sed -i \"$linen c $ctext\" \$output 
+			;;
+			i|insert)
+				read -p 'Please choose the line number:' linen 
+				echo 'The text you want to add:'
+				read ctext
+				eval sed -i \"$linen i $ctext\" \$output 
+			;;
+			d|delete)
+				read -p 'Please choose the line number:' linen 
+				eval sed -i \"$linen d\" \$output 
+			;;
+			q|quit) 
+			cont=0 
+			;;
+		esac
+	done
+fi
+echo 'The gnuplot file generate sucessfully!'
 #------- For test -------#
 # index_list=""
 # for ivar in "${var_list[@]}"
