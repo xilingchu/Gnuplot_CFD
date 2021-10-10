@@ -1,5 +1,10 @@
 #!/usr/bin/bash
 # This is a script for generating gnuplot script.  An easy and effective way to generate data visualization.
+#------- Default Parameters settings -------#
+# Settings of default line
+lw=4; lc=1; dt=1
+# Settings of default point
+ps=4; pc=1; pt=1
 #------- Dictionary of the Variables -------!
 declare -A var=(
 	['u']='u'
@@ -47,12 +52,29 @@ str_fn(){
 	printf "fn$1='$2'\n"
 }
 
-str_plot(){
-	printf "fn$1 u $2:$3 with l lw 4 title '$4-$5', %s\n" "\\"
+str_plot_l(){
+	# printf "fn$1 u $2:$3 with l lw 4 title '$4-$5', %s\n" "\\"
+	printf "fn$1 u $2:$3 every 1::$4::$5 with l lc $6 lw $7 dt $8 t '$9-${10}', %s\n" "\\"
+}
+
+str_plot_p(){
+	printf "fn$1 u $2:$3 every 1::$4::$5 with p pc $6 ps $7 pt $8 t '$9-${10}', %s\n" "\\"
+}
+
+str_plot_lp(){
+	printf "fn$1 u $2:$3 every 1::$4::$5 with lp lc $6 lw $7 dt $8 pc $9 ps ${10} pt ${11} t '${12}-${13}', %s\n" "\\"
 }
 
 get_var(){
-	grep -E '^[[:space:]]+[a-z]+[[:space:]]' $1
+	grep -E '^[[:blank:]]+[a-z]+\b' $1
+}
+
+get_lbeg(){
+	grep -n -m 1 -E '^[[:blank:]]+[[:digit:]]+\.' $1|awk '{print $1}'|grep -E -o '[0-9]+'
+}
+
+get_lend(){
+	wc -l $1|awk '{print $1}'
 }
 
 get_index(){
@@ -132,7 +154,7 @@ if [ $flagn ]; then
 	# Variables
 	switch_plot=1
 	# The header of the gnuplot file
-	echo 'New gnuplot file generate now!'
+	echo 'New gnuplot file generating now!'
 	ls|grep $output && rm $output
 	str_default >> $output
 	str_output $output >> $output 
@@ -148,6 +170,10 @@ if [ $flagn ]; then
 	for i_ifile in "${!file_list[@]}"
 	do 
 		ifile=${file_list[i_ifile]}
+		line_s=$(get_lbeg $ifile)
+		line_e=$(get_lend $ifile)
+		echo $line_s
+		echo $line_e
 		read -a var_file <<< $(get_var $ifile)
 		index_list=""
 		for ivar in "${var_list[@]}"
@@ -162,7 +188,8 @@ if [ $flagn ]; then
 		do
 			temp_str=${ifile##*/}
 			temp_str=${temp_str%.*}
-			str_plot $((i_ifile+1)) ${index_list[0]} $i $temp_str ${var_file[$(($i-1))]} >> $output
+			str_plot_l $((i_ifile+1)) ${index_list[0]} $i $((line_s-1)) $((line_e-1)) $lc $lw $dt $temp_str ${var_file[$(($i-1))]} >> $output
+			((lc++))
 		done
 	done
 	# Delete the ',\' in the last line
@@ -174,17 +201,26 @@ fi
 #------- Edit Mode -------#
 if [ $flage ]; then
 	cont=1
+	openz=1
 	echo Enter edit mode!
 	while [ $cont == 1 ]
 	do
-		(gnuplot $output > /dev/null && xelatex ${output%.*}.tex > /dev/null && zathura ${output%.*}.pdf &) || (echo The file cannot generate && exit 1)
+		(gnuplot $output > /dev/null && xelatex ${output%.*}.tex > /dev/null) || (echo The file cannot generate && exit 1)
+		[ $openz == 1 ] && zathura ${output%.*}.pdf &
+		openz=0
 		cat -n $output
-		echo "Three types of mode: edit(e), insert(i), quit(q), delete(d)"
+		echo "Three types of mode: edit(e), change(c), insert(i), delete(d), quit(q)"
 		read -p '>> ' edit
 		case $edit in
 			e|edit)
+				read -p 'Please choose the line number(The same as sed):' linen 
+				echo 'The text you want to edit:' 
+				read -a ctext
+				eval sed -i -r \"$linen s/\(${ctext[0]}\) [^ ]+/\\1 ${ctext[1]}/\" \$output
+			;;
+			c|change)
 				read -p 'Please choose the line number:' linen 
-				echo 'The text you want to add:' 
+				echo 'The text you want to change:' 
 				read ctext
 				eval sed -i \"$linen c $ctext\" \$output 
 			;;
@@ -201,18 +237,10 @@ if [ $flage ]; then
 			q|quit) 
 			cont=0 
 			;;
+			*) 
+				echo Please choose the proper option!
+			;;
 		esac
 	done
 fi
 echo 'The gnuplot file generate sucessfully!'
-#------- For test -------#
-# index_list=""
-# for ivar in "${var_list[@]}"
-# do 
-# 	temp_word="${var_file[@]}"
-# 	get_index "$temp_word" ${ivar}
-# 	index_list+="$? "
-# done
-# read -a index_list <<< $index_list
-# temp_word="${index_list[@]}"
-# str_plot "$temp_word"
