@@ -1,6 +1,9 @@
 #!/usr/bin/bash
 # This is a script for generating gnuplot script.  An easy and effective way to generate data visualization.
 #------- Default Parameters settings -------#
+# Settings of the default applications
+PDFREADER=zathura
+LC=pdflatex
 # Settings of default line
 lw=4; lc=1; dt=1
 # Settings of default point
@@ -15,7 +18,18 @@ declare -A var=(
 
 #------- Function Lib -------#
 gnuplot_help(){
-	echo '123'
+	echo GNUPLOT-CFD
+	echo The options of GNUPLOT_OPT
+	echo -h\|--help: Help
+	echo -o\|--output: The output of gnuplot script.
+	echo -f\|--filename: You can use a list to select a file list include your data.
+	echo -v\|--variables: The variables of the plot.
+	echo -c\|--check: Check the variable in the files.
+	echo -e\|--edit: Enter the edit mode.
+	echo The combination of the options.
+	echo If you want to check the variables in a file: you can use -c
+	echo If you want to generate a new file: you can use -o -f -v
+	echo If you want to edit a file: you can use -o -e
 }
 
 str_plus(){
@@ -86,7 +100,7 @@ get_index(){
 	do
 		[ "${temp_var[$i]}" == $2 ] && index_out=$(($i+1)) && return $index_out
 	done
-	echo "The variable $2 doesn\'t exist in the File, please use -c\|--check to check the variable" ; exit 1
+	echo "The variable $2 doesn't exist in the File, please use -c\|--check to check the variable" ; exit 1
 }
 
 # find_var_max(){
@@ -138,6 +152,8 @@ done
 [ $flagf ] && [ $flagc1 ] && flagc=1
 # Edit mode
 [ $flago ] && [ $flage1 ] && flage=1
+# Judge if we should continue the code
+[ $flagn ] | [ $flagc ] | { $flage } || (echo Please choose the proper option; exit 1)
 
 #------- Check the variables -------#
 if [ $flagc ]; then
@@ -172,8 +188,6 @@ if [ $flagn ]; then
 		ifile=${file_list[i_ifile]}
 		line_s=$(get_lbeg $ifile)
 		line_e=$(get_lend $ifile)
-		echo $line_s
-		echo $line_e
 		read -a var_file <<< $(get_var $ifile)
 		index_list=""
 		for ivar in "${var_list[@]}"
@@ -205,8 +219,8 @@ if [ $flage ]; then
 	echo Enter edit mode!
 	while [ $cont == 1 ]
 	do
-		(gnuplot $output > /dev/null && xelatex ${output%.*}.tex > /dev/null) || (echo The file cannot generate && exit 1)
-		[ $openz == 1 ] && zathura ${output%.*}.pdf &
+		(gnuplot $output > /dev/null && $LC ${output%.*}.tex > /dev/null) || (echo The file cannot generate && exit 1)
+		[ $openz == 1 ] && $PDFREADER ${output%.*}.pdf &
 		openz=0
 		cat -n $output
 		echo "Three types of mode: edit(e), change(c), insert(i), delete(d), quit(q)"
