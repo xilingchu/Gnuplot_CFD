@@ -153,7 +153,7 @@ done
 # Edit mode
 [ $flago ] && [ $flage1 ] && flage=1
 # Judge if we should continue the code
-[ $flagn ] | [ $flagc ] | { $flage } || (echo Please choose the proper option; exit 1)
+[ $flagn ] || [ $flagc ] || [ $flage ] || (echo Please choose the proper option! ; exit 1)
 
 #------- Check the variables -------#
 if [ $flagc ]; then
@@ -171,7 +171,7 @@ if [ $flagn ]; then
 	switch_plot=1
 	# The header of the gnuplot file
 	echo 'New gnuplot file generating now!'
-	ls|grep $output && rm $output
+	ls|grep $output > /dev/null && rm $output
 	str_default >> $output
 	str_output $output >> $output 
 	str_lable 'x' $xlable >> $output
