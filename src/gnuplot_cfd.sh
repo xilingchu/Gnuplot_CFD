@@ -118,7 +118,7 @@ while true
 do 
 	case "$1" in
 		# Filename
-		-h|--help) gnuplot_help ; shift ; exit 1 ;;
+		-h|--help) gnuplot_help ; shift ; exit 0 ;;
 		-c|--check) flagc1=1; shift ;;
 		-e|--edit) flage1=1; shift ;;
 		-f|--filename) 
@@ -153,7 +153,7 @@ done
 # Edit mode
 [ $flago ] && [ $flage1 ] && flage=1
 # Judge if we should continue the code
-[ $flagn ] || [ $flagc ] || [ $flage ] || (echo Please choose the proper option! ; exit 1)
+[ $flagn ] || [ $flagc ] || [ $flage ] || (echo Please choose the proper option! && exit 1)
 
 #------- Check the variables -------#
 if [ $flagc ]; then
@@ -210,6 +210,7 @@ if [ $flagn ]; then
 	# Get the line number
 	linenum=$(wc -l $output|awk '{print $1}')
 	eval sed -e "'${linenum}s/, \\\/ /'" -i $output
+	echo 'The gnuplot file generate sucessfully!'
 fi
 
 #------- Edit Mode -------#
@@ -256,5 +257,5 @@ if [ $flage ]; then
 			;;
 		esac
 	done
+	echo Exit the edit mode!
 fi
-echo 'The gnuplot file generate sucessfully!'
