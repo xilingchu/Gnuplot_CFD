@@ -108,7 +108,7 @@ get_index(){
 # }
 
 #------- Getopt -------#
-args="$(sed -r 's/(-+[A-za-z]+ )([^-]*)( |$)/\1"\2"\3/g' <<< $@)"
+args="$(sed -r 's/(-+[A-Za-z]+ )([^-]*)( |$)/\1"\2"\3/g' <<< $@)"
 declare -a arg_lists="($args)"
 set -- "${arg_lists[@]}"
 GNUPLOT_OPT=`getopt -o hcef:o:v: -l help,check,edit,filename:,output:,variables: \
